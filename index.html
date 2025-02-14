@@ -582,7 +582,8 @@
             playerVars: {
                 'playsinline': 1,
                 'controls': 1,
-                'autoplay': 0,
+                'autoplay': 1,
+                 'mute': 1,     // Initially mute to comply with autoplay policies
                 'modestbranding': 1,
                 'rel': 0
             },
@@ -593,8 +594,18 @@
         });
     }
 
+  // Update the onPlayerReady function to attempt unmuting after user interaction
     function onPlayerReady(event) {
         updateSongTitle();
+        // Start playing immediately
+        player.playVideo();
+
+        // Add click listener to the document to unmute after first interaction
+        document.addEventListener('click', function unmute() {
+            player.unMute();
+            // Remove the listener after first click
+            document.removeEventListener('click', unmute);
+        }, { once: true });
     }
 
     function onPlayerStateChange(event) {
@@ -770,6 +781,9 @@
                     </body>
                     
                     </html>
+
+
+                    can the music start playing immediately i open this page?
 
 
 
