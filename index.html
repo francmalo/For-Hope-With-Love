@@ -435,6 +435,42 @@
             margin-bottom: 1.5rem;
             min-height: 1.8em;
         }
+
+        /* Add these styles to your existing CSS */
+.playlist-controls {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.playlist-button {
+    background: linear-gradient(45deg, var(--primary), var(--accent));
+    border: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    font-size: 1.2rem;
+    box-shadow: 0 3px 10px rgba(255, 107, 107, 0.3);
+}
+
+.playlist-button:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 20px var(--primary);
+}
+
+#current-song-title {
+    font-size: 1.1rem;
+    color: var(--primary);
+    min-width: 150px;
+    text-align: center;
+}
     </style>
 </head>
 
@@ -487,14 +523,17 @@
     </div>
 </section>
                     
-                    <section id="music">
-                        <h2>Our Symphony of Love</h2>
-                        <div class="music-player">
-                            <button class="play-button" id="playButton">▶️</button>
-                            <span>A Melody for Hope</span>
-                        </div>
-                        <audio id="song" src="/api/placeholder/audio" loop></audio>
-                    </section>
+            <section id="music">
+                <h2>Our Symphony of Love</h2>
+                <div class="music-player">
+                    <div id="youtube-player"></div>
+                    <div class="playlist-controls">
+                        <button class="playlist-button" onclick="playPreviousSong()">⏮️</button>
+                        <span id="current-song-title">Loading...</span>
+                        <button class="playlist-button" onclick="playNextSong()">⏭️</button>
+                    </div>
+                </div>
+            </section>
                     
                     <section id="closing">
                         <h2>Forever & Always</h2>
@@ -503,7 +542,6 @@
                     </section>
                     
                     <script>
-
     // Letter content
     const letterText = [
         "My precious Hope,",
@@ -513,6 +551,75 @@
         "I promise to cherish every moment with you, to hold your hand through life's storms, and to love you more deeply with each passing day. You are my today and all of my tomorrows.",
         "Forever & Always Yours,\n❤️"
     ];
+
+    // Playlist configuration
+    const playlist = [
+        {
+            videoId: 'UsqDoz2Co4o', // Replace with your first song's YouTube video ID
+            title: 'a)A Memory For Hope'
+        },
+        {
+            videoId: 'rtOvBOTyX00', // Replace with your second song's YouTube video ID
+            title: 'b)A Memory For Hope'
+        }
+    ];
+
+    let currentSongIndex = 0;
+    var player;
+
+    // Load YouTube iframe API
+    var tag = document.createElement('script');
+    tag.src = "https://www.youtube.com/iframe_api";
+    var firstScriptTag = document.getElementsByTagName('script')[0];
+    firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+    // YouTube Player Functions
+    function onYouTubeIframeAPIReady() {
+        player = new YT.Player('youtube-player', {
+            height: '60',
+            width: '200',
+            videoId: playlist[currentSongIndex].videoId,
+            playerVars: {
+                'playsinline': 1,
+                'controls': 1,
+                'autoplay': 0,
+                'modestbranding': 1,
+                'rel': 0
+            },
+            events: {
+                'onReady': onPlayerReady,
+                'onStateChange': onPlayerStateChange
+            }
+        });
+    }
+
+    function onPlayerReady(event) {
+        updateSongTitle();
+    }
+
+    function onPlayerStateChange(event) {
+        // Auto-play next song when current song ends
+        if (event.data === YT.PlayerState.ENDED) {
+            playNextSong();
+        }
+    }
+
+    function updateSongTitle() {
+        const titleElement = document.getElementById('current-song-title');
+        titleElement.textContent = playlist[currentSongIndex].title;
+    }
+
+    function playNextSong() {
+        currentSongIndex = (currentSongIndex + 1) % playlist.length;
+        player.loadVideoById(playlist[currentSongIndex].videoId);
+        updateSongTitle();
+    }
+
+    function playPreviousSong() {
+        currentSongIndex = (currentSongIndex - 1 + playlist.length) % playlist.length;
+        player.loadVideoById(playlist[currentSongIndex].videoId);
+        updateSongTitle();
+    }
 
     // Floating hearts animation
     function createHeart() {
@@ -595,31 +702,8 @@
         });
     }, { threshold: 0.2 });
 
-    // Initialize observers
-    document.querySelectorAll('.timeline-item').forEach(el => observer.observe(el));
-    document.querySelectorAll('.love-letter').forEach(el => letterObserver.observe(el));
-
-    // Music player functionality
-    const playButton = document.getElementById('playButton');
-    const song = document.getElementById('song');
-    let isPlaying = false;
-
-    playButton.addEventListener('click', () => {
-        if (isPlaying) {
-            song.pause();
-            playButton.textContent = '▶️';
-            playButton.style.animation = '';
-        } else {
-            song.play();
-            playButton.textContent = '⏸️';
-            playButton.style.animation = 'pulse 2s infinite';
-        }
-        isPlaying = !isPlaying;
-    });
-
     // Enhanced love button effect
-    document.getElementById('loveButton').addEventListener('click', () => {
-        // Create burst of hearts
+    function createBurstOfHearts() {
         for (let i = 0; i < 30; i++) {
             setTimeout(() => {
                 const heart = document.createElement('div');
@@ -633,15 +717,41 @@
                 setTimeout(() => heart.remove(), 4000);
             }, i * 50);
         }
+    }
+
+    // Initialize page
+    document.addEventListener('DOMContentLoaded', () => {
+        // Initialize observers
+        document.querySelectorAll('.timeline-item').forEach(el => observer.observe(el));
+        document.querySelectorAll('.love-letter').forEach(el => letterObserver.observe(el));
+
+        // Start initial animations
+        createHeart();
+
+        // Set initial states
+        document.querySelectorAll('.timeline-item').forEach((item, index) => {
+            item.dataset.delay = `${index * 200}ms`;
+        });
+
+        // Add event listeners
+        document.getElementById('loveButton').addEventListener('click', createBurstOfHearts);
+
+        // Smooth scrolling for navigation
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
     });
 
-    // Smooth scrolling for navigation
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-        anchor.addEventListener('click', function (e) {
-            e.preventDefault();
-            document.querySelector(this.getAttribute('href')).scrollIntoView({
-                behavior: 'smooth'
-            });
+    // Handle window resize for responsive adjustments
+    window.addEventListener('resize', () => {
+        // Recalculate any necessary dimensions
+        document.querySelectorAll('.timeline-item').forEach(item => {
+            item.style.opacity = '1';
         });
     });
 
@@ -656,25 +766,6 @@
             }
         });
     });
-
-    // Handle window resize for responsive adjustments
-    window.addEventListener('resize', () => {
-        // Recalculate any necessary dimensions
-        document.querySelectorAll('.timeline-item').forEach(item => {
-            item.style.opacity = '1';
-        });
-    });
-
-    // Initialize page
-    document.addEventListener('DOMContentLoaded', () => {
-        // Start initial animations
-        createHeart();
-
-        // Set initial states
-        document.querySelectorAll('.timeline-item').forEach((item, index) => {
-            item.dataset.delay = `${index * 200}ms`;
-        });
-    });
                     </script>
                     </body>
                     
@@ -682,4 +773,4 @@
 
 
 
-                  please how can i make my code even better and more beautiful
+             
